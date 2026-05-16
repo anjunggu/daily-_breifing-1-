@@ -1,0 +1,54 @@
+name: Daily Market Briefing
+
+on:
+  schedule:
+    # 10:00 KST = 01:00 UTC
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      target_date:
+        description: "Report date (YYYY-MM-DD). Leave empty to use previous day."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install finance-datareader pandas jinja2
+          fi
+
+      - name: Generate HTML report
+        env:
+          TARGET_DATE: ${{ github.event.inputs.target_date }}
+        run: |
+          if [ -n "$TARGET_DATE" ]; then
+            python app/main.py --target-date "$TARGET_DATE"
+          else
+            python app/main.py --target-date yesterday
+          fi
+
+      - name: Commit and push report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/
+          git commit -m "chore: add daily market report" || echo "No changes to commit"
+          git push
