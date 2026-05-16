@@ -32,19 +32,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Verify script path
+      - name: Verify repository root and script path
         run: |
+          echo "workspace: $GITHUB_WORKSPACE"
           pwd
-          test -f app/main.py
+          [ -f "./app/main.py" ]
 
       - name: Generate HTML report
         env:
           TARGET_DATE: ${{ github.event.inputs.target_date }}
         run: |
           if [ -n "$TARGET_DATE" ]; then
-            python app/main.py --target-date "$TARGET_DATE"
+            python ./app/main.py --target-date "$TARGET_DATE"
           else
-            python app/main.py --target-date yesterday
+            python ./app/main.py --target-date yesterday
           fi
 
       - name: Commit and push report
